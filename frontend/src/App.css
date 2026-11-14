@@ -1,3 +1,4 @@
+
 .app {
   min-height: 100vh;
   display: flex;
@@ -5,8 +6,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 40px 24px;
-  box-sizing: border-box;
+  padding: 60px 24px;
 }
 
 .app h1 {
@@ -22,12 +22,11 @@
   font-size: clamp(20px, 3vw, 28px);
   font-weight: 500;
   line-height: 1.5;
-  letter-spacing: 0.3px;
   color: #f1f5f9;
   margin: 0 0 22px;
 }
 
-.app p {
+.app > p {
   font-size: 16px;
   color: #94a3b8;
   max-width: 580px;
@@ -35,19 +34,175 @@
   margin: 0 0 36px;
 }
 
+/* 图片上传区域 */
+
+.upload-area {
+  width: 100%;
+  max-width: 620px;
+  min-height: 300px;
+  border: 2px dashed #475569;
+  border-radius: 18px;
+  background: #1e293b;
+  padding: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.2s ease;
+}
+
+.upload-area.dragging {
+  border-color: #60a5fa;
+  background: #263c5c;
+}
+
+/* 上传提示 */
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-icon {
+  font-size: 46px;
+  color: #60a5fa;
+  margin-bottom: 10px;
+}
+
+.upload-content h3 {
+  color: #f8fafc;
+  font-size: 20px;
+  margin: 0 0 14px;
+}
+
+.upload-content p {
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0 0 24px;
+}
+
+.upload-hint {
+  display: block;
+  margin-top: 18px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* 按钮 */
+
 .app button {
-  padding: 15px 36px;
-  font-size: 15px;
-  font-weight: 600;
+  padding: 12px 28px;
   background: #2563eb;
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
+  transition: 0.2s ease;
 }
 
 .app button:hover {
   background: #1d4ed8;
   transform: translateY(-2px);
+}
+
+/* 图片预览 */
+
+.preview-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.preview-image {
+  display: block;
+  max-width: 100%;
+  max-height: 350px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.file-name {
+  margin: 14px 0;
+  font-size: 13px;
+  color: #94a3b8;
+  overflow-wrap: anywhere;
+}
+
+.image-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.app .remove-button {
+  background: #374151;
+}
+
+.app .remove-button:hover {
+  background: #4b5563;
+}
+
+/* 错误提示 */
+
+.error-message {
+  margin-top: 18px;
+  color: #f87171;
+  font-size: 14px;
+}
+
+/* Recognition section */
+
+.recognition-section {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.app .identify-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 200px;
+  padding: 15px 32px;
+  background: #2563eb;
+  font-size: 15px;
+}
+
+.app .identify-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.app .identify-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spinner {
+  width: 17px;
+  height: 17px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.recognition-message {
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.6;
 }
