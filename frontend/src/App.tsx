@@ -114,22 +114,53 @@ function App() {
     }
   }
 
-  const handleIdentify = async () => {
-    if (!image || isIdentifying) return
 
-    setIsIdentifying(true)
-    setRecognitionMessage('')
+const handleIdentify = async () => {
+  if (!image || isIdentifying) return
 
-    // 临时模拟识别过程
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 1500)
-    })
+  setIsIdentifying(true)
+  setRecognitionMessage('')
 
-    setIsIdentifying(false)
-    setRecognitionMessage(
-      'Demo complete! AI recognition will be connected soon.'
+  try {
+    // 创建表单数据
+    const formData = new FormData()
+    formData.append('file', image)
+
+    // 向 Python 后端发送图片
+    const response = await fetch(
+      'http://127.0.0.1:8000/api/identify',
+      {
+        method: 'POST',
+        body: formData,
+      }
     )
+
+    // 读取后端返回的 JSON
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(
+        result.detail || 'Image upload failed'
+      )
+    }
+
+    // 显示后端返回的信息
+    setRecognitionMessage(
+      `${result.message} (${result.filename})`
+    )
+  } catch (error) {
+    console.error('API Error:', error)
+
+    setRecognitionMessage(
+      error instanceof Error
+        ? error.message
+        : 'Failed to connect to the server.'
+    )
+  } finally {
+    setIsIdentifying(false)
   }
+}
+
 
   return (
     <div className="app">
