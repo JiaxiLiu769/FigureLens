@@ -1,6 +1,6 @@
-
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from ai_service import recognize_figure
 
 app = FastAPI(title="FigureLens API")
 
@@ -45,9 +45,24 @@ async def identify_figure(file: UploadFile = File(...)):
             detail="Image exceeds 10 MB"
         )
 
+    try:
+        result = await recognize_figure(
+            image_bytes=content,
+            content_type=file.content_type,
+        )
+
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+
+        raise HTTPException(
+            status_code=502,
+            detail="AI recognition failed"
+        ) from exc
+
     return {
         "success": True,
         "filename": file.filename,
-        "size": len(content),
-        "message": "Image received successfully",
+        "result": result,
     }
+

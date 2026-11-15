@@ -3,7 +3,18 @@ import { useRef, useState, useEffect } from 'react'
 import type { ChangeEvent, DragEvent } from 'react'
 import './App.css'
 
+type FigureResult = {
+  character: string | null
+  series: string | null
+  manufacturer: string | null
+  scale: string | null
+  description: string | null
+}
+
 function App() {
+
+  const [figureResult, setFigureResult] = useState<FigureResult | null>(null)
+
   // 保存用户选择的图片文件
   const [image, setImage] = useState<File | null>(null)
 
@@ -145,9 +156,8 @@ const handleIdentify = async () => {
     }
 
     // 显示后端返回的信息
-    setRecognitionMessage(
-      `${result.message} (${result.filename})`
-    )
+    setFigureResult(result.result)
+    setRecognitionMessage('Figure identified successfully!')
   } catch (error) {
     console.error('API Error:', error)
 
@@ -265,6 +275,38 @@ const handleIdentify = async () => {
           {recognitionMessage}
         </p>
       )}
+
+  {figureResult && (
+    <section className="figure-result">
+      <h2>AI Recognition Result</h2>
+
+      <p>
+        <strong>Character:</strong>{' '}
+        {figureResult.character ?? 'Unknown'}
+      </p>
+
+      <p>
+        <strong>Series:</strong>{' '}
+        {figureResult.series ?? 'Unknown'}
+      </p>
+
+      <p>
+        <strong>Manufacturer:</strong>{' '}
+        {figureResult.manufacturer ?? 'Unknown'}
+      </p>
+
+      <p>
+        <strong>Scale:</strong>{' '}
+        {figureResult.scale ?? 'Unknown'}
+      </p>
+
+      <p>
+        <strong>Description:</strong>{' '}
+        {figureResult.description ?? 'No description'}
+      </p>
+    </section>
+  )}
+
     </div>
   )}
 
