@@ -1,5 +1,9 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
+from sqlalchemy import select
+from database import SessionLocal
+from models import Figure
 from ai_service import recognize_figure
 
 app = FastAPI(title="FigureLens API")
@@ -66,3 +70,31 @@ async def identify_figure(file: UploadFile = File(...)):
         "result": result,
     }
 
+@app.get("/api/figures")
+def search_figures(character: str = ""):
+    with SessionLocal() as db:
+        query = select(Figure)
+
+        if character.strip():
+            query = query.where(
+                Figure.character.ilike(
+                    f"%{character.strip()}%"
+                )
+            )
+
+        figures = db.scalars(query).all()
+
+        return {
+            "count": len(figures),
+            "figures": [
+                {
+                    "id": figure.id,
+                    "name": figure.name,
+                    "character": figure.character,
+                    "series": figure.series,
+                    "manufacturer": figure.manufacturer,
+                    "scale": figure.scale,
+                }
+                for figure in figures
+            ],
+        }
