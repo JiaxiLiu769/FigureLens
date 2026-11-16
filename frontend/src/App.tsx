@@ -3,6 +3,7 @@ import { useRef, useState, useEffect } from 'react'
 import type { ChangeEvent, DragEvent } from 'react'
 import './App.css'
 
+// AI 识别结果的数据类型
 type FigureResult = {
   character: string | null
   series: string | null
@@ -11,28 +12,54 @@ type FigureResult = {
   description: string | null
 }
 
+// 数据库商品的数据类型
+type FigureProduct = {
+  id: number
+  name: string
+  character: string
+  series: string
+  manufacturer: string | null
+  scale: string | null
+}
+
+const API_BASE_URL = 'http://127.0.0.1:8000'
+
 function App() {
-
-  const [figureResult, setFigureResult] = useState<FigureResult | null>(null)
-
-  // 保存用户选择的图片文件
+  // 用户选择的图片
   const [image, setImage] = useState<File | null>(null)
 
   // 图片预览地址
   const [preview, setPreview] = useState<string | null>(null)
 
-  // 是否正在拖拽文件
+  // 拖拽状态
   const [isDragging, setIsDragging] = useState(false)
 
   // 错误提示
   const [error, setError] = useState('')
+
+  // AI 识别状态
   const [isIdentifying, setIsIdentifying] = useState(false)
   const [recognitionMessage, setRecognitionMessage] = useState('')
 
-  // 用于打开文件选择窗口
+  // AI 识别结果
+  const [figureResult, setFigureResult] =
+    useState<FigureResult | null>(null)
+
+  // 数据库候选商品
+  const [matchedFigures, setMatchedFigures] =
+    useState<FigureProduct[]>([])
+
+  // 数据库搜索状态
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchError, setSearchError] = useState('')
+
+  // 文件选择输入框
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 当图片变化时，创建或释放预览地址
+  // 用于防止旧请求覆盖新图片的结果
+  const requestIdRef = useRef(0)
+
+  // 图片变化时创建预览 URL
   useEffect(() => {
     if (!image) {
       setPreview(null)
@@ -45,12 +72,23 @@ function App() {
     return () => URL.revokeObjectURL(url)
   }, [image])
 
+  // 清除之前的识别结果
+  const clearResults = () => {
+    requestIdRef.current += 1
+    setFigureResult(null)
+    setMatchedFigures([])
+    setRecognitionMessage('')
+    setSearchError('')
+    setIsSearching(false)
+    setIsIdentifying(false)
+  }
+
   // 验证并保存图片
   const handleImage = (file: File) => {
     const allowedTypes = [
       'image/jpeg',
       'image/png',
-      'image/webp'
+      'image/webp',
     ]
 
     if (!allowedTypes.includes(file.type)) {
@@ -66,6 +104,7 @@ function App() {
     }
 
     setError('')
+    clearResults()
     setImage(file)
   }
 
@@ -96,12 +135,16 @@ function App() {
   ) => {
     event.preventDefault()
 
-    if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+    if (
+      !event.currentTarget.contains(
+        event.relatedTarget as Node
+      )
+    ) {
       setIsDragging(false)
     }
   }
 
-  // 松开鼠标，上传图片
+  // 放下图片
   const handleDrop = (
     event: DragEvent<HTMLDivElement>
   ) => {
@@ -117,6 +160,7 @@ function App() {
 
   // 删除图片
   const removeImage = () => {
+    clearResults()
     setImage(null)
     setError('')
 
@@ -125,52 +169,105 @@ function App() {
     }
   }
 
+  // AI 识别 + 数据库搜索
+  const handleIdentify = async () => {
+    if (!image || isIdentifying) return
 
-const handleIdentify = async () => {
-  if (!image || isIdentifying) return
+    const requestId = ++requestIdRef.current
 
-  setIsIdentifying(true)
-  setRecognitionMessage('')
+    setIsIdentifying(true)
+    setRecognitionMessage('')
+    setFigureResult(null)
+    setMatchedFigures([])
+    setSearchError('')
+    setIsSearching(false)
 
-  try {
-    // 创建表单数据
-    const formData = new FormData()
-    formData.append('file', image)
+    try {
+      // 1. 将图片上传到 FastAPI
+      const formData = new FormData()
+      formData.append('file', image)
 
-    // 向 Python 后端发送图片
-    const response = await fetch(
-      'http://127.0.0.1:8000/api/identify',
-      {
-        method: 'POST',
-        body: formData,
-      }
-    )
-
-    // 读取后端返回的 JSON
-    const result = await response.json()
-
-    if (!response.ok) {
-      throw new Error(
-        result.detail || 'Image upload failed'
+      const response = await fetch(
+        `${API_BASE_URL}/api/identify`,
+        {
+          method: 'POST',
+          body: formData,
+        }
       )
+
+      const result = await response.json()
+
+      if (requestId !== requestIdRef.current) return
+
+      if (!response.ok) {
+        throw new Error(
+          result.detail || 'Image recognition failed'
+        )
+      }
+
+      // 2. 保存 AI 识别结果
+      const recognizedFigure: FigureResult = result.result
+
+      setFigureResult(recognizedFigure)
+      setRecognitionMessage(
+        'Figure identified successfully!'
+      )
+
+      // 3. 根据角色名称搜索数据库
+      const character = recognizedFigure.character
+
+      if (character) {
+        setIsSearching(true)
+
+        try {
+          const searchResponse = await fetch(
+            `${API_BASE_URL}/api/figures?character=${encodeURIComponent(character)}`
+          )
+
+          if (!searchResponse.ok) {
+            throw new Error('Failed to search figure database')
+          }
+
+          const searchResult = await searchResponse.json()
+
+          if (requestId !== requestIdRef.current) return
+
+          console.log('Database search result:', searchResult)
+
+          // 4. 保存数据库返回的候选商品
+          setMatchedFigures(searchResult.figures ?? [])
+        } catch (searchErr) {
+          if (requestId !== requestIdRef.current) return
+
+          console.error('Database search error:', searchErr)
+
+          setSearchError(
+            searchErr instanceof Error
+              ? searchErr.message
+              : 'Database search failed'
+          )
+        } finally {
+          if (requestId === requestIdRef.current) {
+            setIsSearching(false)
+          }
+        }
+      }
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return
+
+      console.error('API Error:', err)
+
+      setRecognitionMessage(
+        err instanceof Error
+          ? err.message
+          : 'Failed to connect to the server.'
+      )
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setIsIdentifying(false)
+      }
     }
-
-    // 显示后端返回的信息
-    setFigureResult(result.result)
-    setRecognitionMessage('Figure identified successfully!')
-  } catch (error) {
-    console.error('API Error:', error)
-
-    setRecognitionMessage(
-      error instanceof Error
-        ? error.message
-        : 'Failed to connect to the server.'
-    )
-  } finally {
-    setIsIdentifying(false)
   }
-}
-
 
   return (
     <div className="app">
@@ -184,6 +281,7 @@ const handleIdentify = async () => {
         Simply upload a photo to get started.
       </p>
 
+      {/* 图片上传区域 */}
       <div
         className={`upload-area ${isDragging ? 'dragging' : ''}`}
         onDragOver={handleDragOver}
@@ -249,67 +347,113 @@ const handleIdentify = async () => {
         )}
       </div>
 
+      {/* 图片格式错误 */}
       {error && (
-        <p className="error-message">{error}</p>
-      )}
-
-  {image && (
-    <div className="recognition-section">
-      <button
-        className="identify-button"
-        onClick={handleIdentify}
-        disabled={isIdentifying}
-      >
-        {isIdentifying ? (
-          <>
-            <span className="spinner"></span>
-            Identifying...
-          </>
-        ) : (
-          'Identify Figure'
-        )}
-      </button>
-
-      {recognitionMessage && (
-        <p className="recognition-message">
-          {recognitionMessage}
+        <p className="error-message">
+          {error}
         </p>
       )}
 
-  {figureResult && (
-    <section className="figure-result">
-      <h2>AI Recognition Result</h2>
+      {/* 识别按钮与结果 */}
+      {image && (
+        <div className="recognition-section">
+          <button
+            className="identify-button"
+            onClick={handleIdentify}
+            disabled={isIdentifying}
+          >
+            {isIdentifying ? (
+              <>
+                <span className="spinner"></span>
+                Identifying...
+              </>
+            ) : (
+              'Identify Figure'
+            )}
+          </button>
 
-      <p>
-        <strong>Character:</strong>{' '}
-        {figureResult.character ?? 'Unknown'}
-      </p>
+          {recognitionMessage && (
+            <p className="recognition-message">
+              {recognitionMessage}
+            </p>
+          )}
 
-      <p>
-        <strong>Series:</strong>{' '}
-        {figureResult.series ?? 'Unknown'}
-      </p>
+          {/* AI 识别结果 */}
+          {figureResult && (
+            <section className="figure-result">
+              <h2>AI Recognition Result</h2>
 
-      <p>
-        <strong>Manufacturer:</strong>{' '}
-        {figureResult.manufacturer ?? 'Unknown'}
-      </p>
+              <p>
+                <strong>Character:</strong>{' '}
+                {figureResult.character ?? 'Unknown'}
+              </p>
 
-      <p>
-        <strong>Scale:</strong>{' '}
-        {figureResult.scale ?? 'Unknown'}
-      </p>
+              <p>
+                <strong>Series:</strong>{' '}
+                {figureResult.series ?? 'Unknown'}
+              </p>
 
-      <p>
-        <strong>Description:</strong>{' '}
-        {figureResult.description ?? 'No description'}
-      </p>
-    </section>
-  )}
+              <p>
+                <strong>Manufacturer:</strong>{' '}
+                {figureResult.manufacturer ?? 'Unknown'}
+              </p>
 
-    </div>
-  )}
+              <p>
+                <strong>Scale:</strong>{' '}
+                {figureResult.scale ?? 'Unknown'}
+              </p>
 
+              <p>
+                <strong>Description:</strong>{' '}
+                {figureResult.description ?? 'No description'}
+              </p>
+            </section>
+          )}
+
+
+{/* 数据库候选商品 */}
+{figureResult && (
+  <section className="matches-section">
+    <h2>Possible Figure Matches</h2>
+
+    {isSearching ? (
+      <p>Searching figure database...</p>
+    ) : searchError ? (
+      <p className="error-message">{searchError}</p>
+    ) : matchedFigures.length === 0 ? (
+      <p>No matching figures found in database.</p>
+    ) : (
+      <div className="matches-grid">
+        {matchedFigures.map((figure) => (
+          <div className="figure-match" key={figure.id}>
+            <h3>{figure.name}</h3>
+
+            <p>
+              <strong>Character:</strong> {figure.character}
+            </p>
+
+            <p>
+              <strong>Series:</strong> {figure.series}
+            </p>
+
+            <p>
+              <strong>Manufacturer:</strong>{' '}
+              {figure.manufacturer ?? 'Unknown'}
+            </p>
+
+            <p>
+              <strong>Scale:</strong>{' '}
+              {figure.scale ?? 'Unknown'}
+            </p>
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
+)}
+
+        </div>
+      )}
     </div>
   )
 }

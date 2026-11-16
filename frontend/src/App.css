@@ -225,3 +225,69 @@
   line-height: 1.7;
   overflow-wrap: anywhere;
 }commune
+
+.figure-match {
+  padding: 16px;
+  margin-top: 12px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #1e293b;
+}
+
+.figure-match h3 {
+  margin-top: 0;
+  color: #e2e8f0;
+}
+
+
+/* 整个候选商品区域 */
+.matches-section {
+  width: 100%;
+  max-width: 900px;
+  margin: 32px auto;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.matches-section h2 {
+  color: #67e8f9;
+  margin-bottom: 20px;
+}
+
+/* 商品卡片网格 */
+.matches-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+/* 单个商品卡片 */
+.figure-match {
+  padding: 20px;
+  margin: 0;
+  border: 1px solid #475569;
+  border-radius: 14px;
+  background: #1e293b;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.figure-match h3 {
+  color: #e2e8f0;
+  margin: 0 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #475569;
+}
+
+.figure-match p {
+  margin: 10px 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* 手机端自动改成单列 */
+@media (max-width: 650px) {
+  .matches-grid {
+    grid-template-columns: 1fr;
+  }
+}
