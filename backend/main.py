@@ -94,6 +94,7 @@ def search_figures(character: str = ""):
                     "series": figure.series,
                     "manufacturer": figure.manufacturer,
                     "scale": figure.scale,
+                    "price": figure.price,
                 }
                 for figure in figures
             ],

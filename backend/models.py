@@ -1,5 +1,5 @@
 
-from sqlalchemy import String, Integer, ForeignKey
+from sqlalchemy import String, Integer, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -32,5 +32,10 @@ class Figure(Base):
 
     scale: Mapped[str | None] = mapped_column(
         String(50),
+        nullable=True
+    )
+
+    price: Mapped[float | None] = mapped_column(
+        Float,
         nullable=True
     )

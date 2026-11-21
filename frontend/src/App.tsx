@@ -20,6 +20,7 @@ type FigureProduct = {
   series: string
   manufacturer: string | null
   scale: string | null
+  price: number | null
 }
 
 const API_BASE_URL = 'http://127.0.0.1:8000'
@@ -53,6 +54,9 @@ function App() {
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
 
+  // 当前选择的手办
+  const [selectedFigureId, setSelectedFigureId] = useState<number | null>(null)
+
   // 文件选择输入框
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -77,6 +81,7 @@ function App() {
     requestIdRef.current += 1
     setFigureResult(null)
     setMatchedFigures([])
+    setSelectedFigureId(null)
     setRecognitionMessage('')
     setSearchError('')
     setIsSearching(false)
@@ -179,6 +184,7 @@ function App() {
     setRecognitionMessage('')
     setFigureResult(null)
     setMatchedFigures([])
+    setSelectedFigureId(null)
     setSearchError('')
     setIsSearching(false)
 
@@ -445,6 +451,24 @@ function App() {
               <strong>Scale:</strong>{' '}
               {figure.scale ?? 'Unknown'}
             </p>
+
+            <p className="figure-price">
+              {typeof figure.price === 'number'
+                ? `CA$${figure.price.toFixed(2)}`
+                : 'Price unavailable'}
+            </p>
+            <p className="price-note">Demo price · Not a live offer</p>
+
+            <button
+              className="select-figure-button"
+              type="button"
+              aria-pressed={selectedFigureId === figure.id}
+              onClick={() => setSelectedFigureId(figure.id)}
+            >
+              {selectedFigureId === figure.id
+                ? 'Selected ✓'
+                : 'Select This Figure'}
+            </button>
           </div>
         ))}
       </div>
